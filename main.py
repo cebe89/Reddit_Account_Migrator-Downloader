@@ -338,7 +338,7 @@ def csv_write(object_list, filesuffix='noobjectgiven'):
 def main() -> int:
     print('Welcome to my reddit arrount-migratior and download-fetcher!')
 
-    json_name = 'user_benpo1987.json'
+    json_name = 'user_bunpy.json'
     try:
         path = Path(__file__).parent
         json_filepath = path / json_name
@@ -428,6 +428,7 @@ def main() -> int:
     print('Extracting i.reddit urls...')
     saves_ireddit = url_extract(redditor_saves, {'//i.redd.it'})
     print()
+    # godo add reddit.gallery, v.reddit, redgifs
 
     # replace all newlines in body with a dot, so I don't have newlines from comments in the csv
     # and reformat the utc time to a format of Year-Month-Day-Seconds
@@ -445,8 +446,8 @@ def main() -> int:
     # takes optional slice parameter that defaults to slice(0, -1)
     print('Downloading imgur files...')
     url_download(saves_imgur, foldername='download')
-    # print('Downloading i.reddit files...')
-    # url_download(saves_ireddit, foldername='download')
+    print('Downloading i.reddit files...')
+    url_download(saves_ireddit, foldername='download')
 
     # url_download_comments(reddit, saves_imgur, 0)
 
