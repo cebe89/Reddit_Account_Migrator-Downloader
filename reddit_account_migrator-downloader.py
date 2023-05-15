@@ -1,3 +1,9 @@
+# Reddit_Account_Migrator-Downloader
+# written in: python 3.10
+# required packages: praw
+# author: cebe89
+# github: https://github.com/cebe89/Reddit_Account_Migrator-Downloader
+
 import sys
 import csv
 import json
@@ -338,7 +344,7 @@ def csv_write(object_list, filesuffix='noobjectgiven'):
 def main() -> int:
     print('Welcome to my reddit arrount-migratior and download-fetcher!')
 
-    json_name = 'user_bunpy.json'
+    json_name = 'user_template.json'
     try:
         path = Path(__file__).parent
         json_filepath = path / json_name
