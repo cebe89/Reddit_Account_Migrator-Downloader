@@ -34,6 +34,8 @@ Features (planned):
 -option to unsave favorites from a list
 -add crawler for reddit galleries
 -add crawler for imgur galleries
+-option to fetch comments belonging to an url and download them, with optional depth parameter (standard level 2, to find people eventually telling a source)
+ (would have to discern between saved comments and post)
 -add more other websites to extract and crawl for and download (redgifs etc) 
 -option to load posts (and extract links and download them) from any user
 -add a proper option to turn on/off options when executing (arguments, CLI?)
