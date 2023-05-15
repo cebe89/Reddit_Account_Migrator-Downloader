@@ -1,5 +1,5 @@
 # Reddit_Account_Migrator-Downloader
-# Written in python 3.10
+# written in: python 3.10
 # required packages: praw
 
 Description:
