@@ -1,6 +1,6 @@
 # Reddit Account-Migrator and Downloader
-**written in:** *python 3.10*  
-**required packages:** *praw*
+**Written in:** *python 3.10*  
+**Required packages:** *praw*
 
 # Description
 A program I've written for myself with (initially) the goal to be able to save all my subscribed subreddits to a file, and I can auto-subscribe to a list when I have one.  
@@ -15,32 +15,29 @@ And I got to deal with GitHub properly finally, and made a proper one where I wi
 # Features
 **Current:**  
 -user account details and flags/settings are loaded from a json file
--fetch subscribed subreddits of user  
--fetch subscribed multireddits and belonging subreddits of user  
--save subscribed subreddits and multireddits locally to disk in a txt format  
--fetch saved favorites of user  
--fetch all comments made by user  
--convert fetched comments and favorites into a dictionary secluding relevant parts and changing format  
--save comments and favorites locally to disk in a csv format  
--extract specified urls from fetched favorites and save them locally in a csv format  
--download a given list of urls where the program tries to find the actual files in case of a html-link  
+-fetch subscribed subreddits of user and export to txt-file  
+-fetch subscribed multireddits and belonging subreddits of user and export to txt-file  
+-subscribe/unsubscribe and create multireddits from a given txt-file  
+-fetch saved favorites of user and export to csv-file  
+-fetch all comments made by user and export to csv-file  
+-convert fetched comments and saves into a dictionary secluding relevant parts and changing format
+-extract specified urls from fetched saves and export to csv-file  
+-download specified urls if they lead to an image/video-file locally to disk
  currently supported fileformats: jpg, png, gif, mp4  
- currently supported websites: i.reddit.com, i.imgur.com, imgur.com (crawls for i.imgur.com links)  
+ currently supported websites: i.reddit.com, i.imgur.com, imgur.com (needs html crawl)  
 
 **Planned:**  
--check if image files are already downloaded BEFORE the crawling (use naming from extracted urls)  
--option to load subreddit and multireddit list from a local txt file  
--option to subscribe/unsubscribe from a list  
--option to create multireddits and add belonging subreddits from a list  
--option to load favorites from a csv file   
--option to reverse convert the dicts into the praw formats  
+-check if image files are already downloaded BEFORE the crawling (use naming from extracted urls, but might not be feasible)    
+-option to load favorites from a csv file (do I really need this?)  
+-option to reverse convert the dicts into the praw formats  (do I really need this?)
 -option to unsave favorites from a list  
--add crawler for reddit galleries and v.reddit videos  
 -add crawler for imgur galleries  
--option to fetch comments belonging to an url and download them, with optional depth parameter (standard level 2, to find people eventually telling a source)  
+-add crawler for reddit galleries and v.reddit videos
+-add more other websites to extract and crawl for and download (twitter, giphy etc.)     
+-option to fetch comments belonging to an url and download them, with optional depth parameter (standard level 2, to find people eventually telling a source)    
  (would have to discern between saved comments and post)  
--add more other websites to extract and crawl for and download (giphy etc.)   
--option to load posts (and extract links and download them) from any user
+-option to load posts (and extract links and download them) from any user  
+-option to download all posts/links from a subreddit/user  
 
 # Installation
 Download the *"reddit_account_migrator-downloader.py"* and the *"user_template.json"* file and put them together in a specific folder.  
@@ -57,10 +54,16 @@ It asks you before you download one of the url lists if you are sure and shows y
 If you want to only download a certain interval from the url-list, you can also change the json file for the sites to take a slice with (from, to).  
 All csv and txt files are saved by default into a folder with the same name as the username.   
 Downloaded images are saved into the folder in a 'downloads' subfolder by default, but you can also give the function a different folder in the json.  
+Now also takes  some unique flags besides the json settings:  
+"-s" "file": Give it a txt file with a subreddit's name on each line, and it will subscribe to all included subreddits.  
+"-u" "file": Same as before, but now it unsubscribes you from the listed subreddits.  
+"-m" "file": Give it a txt file where each line is formatted like "multireddit: subreddit1 subreddit2 subr..." and it will create the multireddits with the given subreddits in it.
+I had some issue where subreddit names where not compatible, for now I only have a message warning you and removing it from the list beforehand.
+Also I don't check (yet) if a subreddit actually exists and is not private or banned, praw will give you an error then.
 
 # etc
 The main does in order:   
-read json > log-in > fetch subreddits > fetch multireddits > save subreddits locally > save multireddits locally >  
+read json > log-in > read flags and execute if found > fetch subreddits > fetch multireddits > save subreddits locally > save multireddits locally >  
 fetch saved favorites > fetch user comments > convert both into dict > save favorites to csv file >   
 extract urls (imgur and i.reddit) from dict > save extracted urls to csv file > download extracted urls (webcrawls if not direct link)
 

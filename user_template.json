@@ -6,15 +6,15 @@
     "password": "",
     "settings": {
         "download_subreddits": {"fetch": true, "limit": null},
-        "download_multireddits": {"fetch": true},
-        "download_comments": {"fetch": true, "limit": null, "level":  0},
-        "download_saves":  {"fetch": true, "limit": null,
-                            "urls": [{"url": ["//imgur", "//i.imgur"],
-                                      "download":  true, "folder":  "downloads", "slice": [0, -1],
-                                      "comments_level":  null},
-                                     {"url": ["//i.redd.it", "//v.redd.it"],
-                                       "download":  true, "folder":  "downloads",  "slice": [0, -1],
-                                       "comments_level":  null}]
+        "download_multireddits": {"fetch": true, "limit": null},
+        "download_comments": {"fetch": true, "limit": null, "comments_level": 0},
+        "download_saves":  {"fetch": true, "limit": null, "ask": true,
+                            "urls": [{"url": ["//imgur", "//i.imgur"], "fetch": true,
+                                      "download": false, "folder": "downloads", "slice": [0, -1],
+                                      "comments_level": null},
+                                     {"url": ["//i.redd.it", "//v.redd.it"], "fetch": true,
+                                      "download": false, "folder": "downloads", "slice": [0, -1],
+                                      "comments_level": null}]
                             }
                 }
 }
