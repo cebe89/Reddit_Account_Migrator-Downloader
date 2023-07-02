@@ -28,7 +28,7 @@ json_settings = {
             "download_comments": {"fetch": True, "limit": LIMIT_FETCH, "comments_level": 0},
             "download_saves":  {"fetch": True, "limit": LIMIT_FETCH, "ask": True,
                                 "urls": [{"url": ["//"], "fetch": True,
-                                         "download": True, "folder": "downloads", "slice": [0, None],
+                                         "dl_list": False, "download": True, "folder": "downloads", "slice": [0, None],
                                          "comments_level": 0}]
                                 }
                  }
@@ -65,6 +65,7 @@ def folder_create(folder):
         logging.debug('No folder given, saving to base directory')
         return path
     path = path / Path(folder)
+    logging.debug(f'path {path}')
     try:
         if Path.is_dir(path):
             logging.info(f'Directory "{path}" already exists')
@@ -201,6 +202,8 @@ def dict_url_extract(object_list, urls):
                     # getting urls from comments is a bit harder, I just hack together something to isolate them
                     # start by finding https: and cut to it
                     url_ext = it_obj.get('body').partition(''.join(('https:', url)))
+                    # todo I think I am only fetching the very first url, but if there are more urls in a comment,
+                    #  it doesn't add them all. But I think I have it rather that way.
                     # if second return is empty, means it didn't find the string, so repeat with http
                     if url_ext[1] == '':
                         url_ext = url_ext.partition(''.join(('http:', url)))
@@ -493,7 +496,10 @@ def url_download(list_urls, folder='downloads', restriction=(0, None), comments_
             return
 
     logging.info(f'Downloading {len(list_urls[restriction])} files...')
-    p_dl = folder_create(username + '/' + folder)
+    if username:
+        p_dl = folder_create(username + '/' + folder)
+    else:
+        p_dl = folder_create(folder)
 
     for url_index, url_object in enumerate(list_urls[restriction]):
         url_cur = url_object['url']
@@ -578,6 +584,7 @@ def main() -> int:
 
     logging.basicConfig(filename='ramd.log', filemode='w', encoding='utf-8', level=logging.DEBUG)
     logger = logging.getLogger('base')
+
     # # for debugging html crawler
     # logging.basicConfig(filename='ramd.log', filemode='w', encoding='utf-8', level=logging.INFO)
     # saves_url = [{'date': '2023-06-11-20', 'subreddit': '196', 'author': 'Frigid_Metal', 'id': '146qcqg',
@@ -588,9 +595,7 @@ def main() -> int:
     #              {'date': '', 'subreddit': 'OnePunchMan', 'author': '', 'id': 'jaqtqq9',
     #               'permalink': '/r/OnePunchMan/comments/11gw74d/tatsumaki_simps/jaqtqq9/',
     #               'url': 'https://imgur.com/a/AmVAOuS', 'body': '', 'title': 'test'}]
-    # url_download(saves_url, folder=('testdownloads'), comments_level=0)
-    # # todo make default folder always file folder at start
-    # # todo make it so you can give the downloader any dictionary and it only tries to get the keys
+    # url_download(saves_url, folder='testdownloads', comments_level=0)
     # return 0
 
     # read in json file given as argument or try to get template file otherwise
@@ -672,7 +677,6 @@ def main() -> int:
         print(F"ERROR: Couldn't create praw reddit user {err}, {type(err)=}!")
         logging.critical(f"Couldn't create praw reddit user {err}, {type(err)=}")
         raise
-    print()
 
     # check additional flags and execute the functions
     # I should probably put this all in its own function.
@@ -760,9 +764,9 @@ def main() -> int:
             multireddits_txt = []
             for multireddit in my_multireddits:
                 multi_line = multireddit.display_name + ':'
-                logging.info(f'found multireddit {multi_line}')
+                # logging.debug(f'found multireddit {multi_line}')
                 for subreddit in multireddit.subreddits:
-                    logging.debug(f'subreddit display name is {subreddit.display_name}')
+                    # logging.debug(f'subreddit display name is {subreddit.display_name}')
                     multi_line = multi_line + ' ' + subreddit.display_name
                 multireddits_txt.append(multi_line)
             file_text_write(multireddits_txt, Path(username) /
@@ -815,15 +819,23 @@ def main() -> int:
             for url_cur in json_settings["download_saves"]["urls"]:
                 if not url_cur["fetch"]:
                     continue
+                logging.info(f'handling urls {url_cur}')
                 saves_url = dict_url_extract(redditor_saves, url_cur["url"])
+                # create a name for the file that includes the searched url(s)
                 saves_url_names = []
-                if saves_url_names == '':
-                    saves_url_names = 'all'
+                if url_cur["url"][0] == '//':
+                    # in case there are all urls chosen ("//") make the name all instead of nothing
+                    saves_url_names = ['all']
                 else:
                     for url_idx in url_cur["url"]:
                         saves_url_names.append(url_idx.strip('//'))
                     # saves_url_filename = [str.join(name) for name in saves_url_names]
+                # save them as a csv file
                 file_csv_write(saves_url, ('_saves_' + '-'.join(saves_url_names)))
+                # download separate urls to txt file if chosen
+                if url_cur["dl_list"]:
+                    file_text_write([k.get("url") for k in saves_url],
+                                    username + '/' + username + '_urls_' + '-'.join(saves_url_names) + '.txt')
                 if url_cur["download"]:
                     # download files from a fetched urls
                     # takes optional slice parameter that defaults to slice(0, -1)
