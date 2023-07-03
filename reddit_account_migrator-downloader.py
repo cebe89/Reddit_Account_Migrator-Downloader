@@ -398,7 +398,7 @@ def url_html_crawler(file_html, url):
         return urls_final
     for tag_idx, tag_ in enumerate(html_tags_start):
         for obj_tag_ in obj_tag:
-            logging.debug(f'crawling for tag {obj_tag_}')
+            # logging.debug(f'crawling for tag {obj_tag_}')
             if tag_ == obj_tag_:
                 logging.debug(f'found tag {tag_}')
                 url_html_crawler_attr(tag_idx, attr_condition, attr_search, urls_final)
