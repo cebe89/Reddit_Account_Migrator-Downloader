@@ -170,7 +170,7 @@ def file_csv_write(object_list, file_folder='', file_name='_none'):
         with open(f'{path / Path(csv_filename)}.csv', 'w', newline='',
                   encoding='utf-8') as csvfile:
             file_header = list(object_list[0].keys())
-            filewriter = csv.DictWriter(csvfile, fieldnames=file_header,
+            filewriter = csv.DictWriter(csvfile, fieldnames=file_header, extrasaction='ignore',
                                         delimiter=' ', quotechar='"')
             filewriter.writeheader()
             for line_it in object_list:
@@ -223,12 +223,12 @@ def dict_urls_extract(object_list, urls):
                 if url in it_obj.get('body'):
                     # getting urls from comments is a bit harder, I just hack together something to isolate them
                     # start by finding https: and cut to it
-                    url_ext = it_obj.get('body').partition(''.join(('https:', url)))
+                    url_ext = ''.join(it_obj.get('body')).partition(''.join(('https:', url)))
                     # todo I think I am only fetching the very first url, but if there are more urls in a comment,
                     #  it doesn't add them all. But I think I have it rather that way.
                     # if second return is empty, means it didn't find the string, so repeat with http
                     if url_ext[1] == '':
-                        url_ext = url_ext.partition(''.join(('http:', url)))
+                        url_ext = ''.join(url_ext).partition(''.join(('http:', url)))
                         if url_ext[1] == '':
                             logging.info(f'No http/https links found in "{url_ext}"')
                     # now add the https and all the right cut together
