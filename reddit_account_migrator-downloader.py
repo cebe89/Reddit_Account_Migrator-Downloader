@@ -30,7 +30,18 @@ json_settings = {
                                 "urls": [{"url": ["//"], "fetch": True,
                                          "dl_list": False, "download": True, "folder": "downloads", "slice": [0, None],
                                          "comments_level": 0}]
-                                }
+                                },
+            "download_redditors": [{"redditor": "",
+                                    "download_submissions": {"fetch": False, "limit": None, "ask": True,
+                                                             "urls": [{"url": ["//"], "fetch": True, "dl_list": True,
+                                                                       "download": False, "folder": "downloads",
+                                                                       "slice": [0, None], "comments_level": 2}]},
+                                    "download_comments": {"fetch": True, "limit": None, "comments_level": 0}}],
+            "download_subs": [{"subreddit": "",
+                                    "download_submissions": {"fetch": False, "limit": None, "ask": True,
+                                                             "urls": [{"url": ["//"], "fetch": True, "dl_list": True,
+                                                                       "download": False, "folder": "downloads",
+                                                                       "slice": [0, None], "comments_level": 2}]}}]
                  }
 html_tags_start = []
 html_tags_start_attrs = []
@@ -62,7 +73,7 @@ def folder_create(folder):
     """
     path = Path(__file__).parent
     if not folder:
-        logging.debug('No folder given, saving to base directory')
+        logging.info('No folder given, saving to base directory')
         return path
     path = path / Path(folder)
     logging.debug(f'path {path}')
@@ -103,24 +114,27 @@ def file_text_read(file_path, delimiter='\n'):
         raise IOError('%s: %s' % (path, exception.strerror))
 
 
-def file_text_write(file_content, file_path, newline='\n'):
+def file_text_write(file_content, file_folder, file_name='_none', newline='\n'):
     """Takes text content as lines in a list and writes them as
     specified file, using optional newline parameter.
     """
     if not file_content:
         logging.error("No content given, text file write aborted")
         return
-    if not file_path:
-        logging.error("No text path given, text read aborted")
-        return
+    # if not file_folder:
+    #     logging.error("No text path given, text read aborted")
+    #     return
+    # remove bad characters that can be in urls
+    for k in (URL_DELGARBAGERS + URL_DELIMITERS + ['.', '/', 'www']):
+        file_name = file_name.replace(k, '')
     try:
         path = Path(__file__).parent
-        path = path / Path(file_path)
-        if not path.is_file():
-            folder_create(Path(path.resolve().parent))
-        with open(file_path, 'w', newline=newline, encoding='utf-8') \
+        file_full = path / Path(file_folder) / Path(file_name + '.txt')
+        if not file_full.is_file():
+            folder_create(Path(file_full.resolve().parent))
+        with open(file_full, 'w', newline=newline, encoding='utf-8') \
                 as file_txt:
-            logging.debug(f'Writing text file "{file_path}"...')
+            logging.debug(f'Writing text file "{file_full}"...')
             # file_txt.writelines((line + '\n') for line in file_content)
             # file_txt.writelines(file_content)  # Misses \n.
             # Still rather do with a write in a for loop as it omits
@@ -131,19 +145,27 @@ def file_text_write(file_content, file_path, newline='\n'):
                     file_newline = ''
                 file_txt.write(str(file_line) + file_newline)
     except IOError:
-        raise IOError(f'Error: Failed to write txt file "{file_path}"!')
+        raise IOError(f'Error: Failed to write txt file "{file_name}"!')
 
 
-def file_csv_write(object_list, file_suffix='_none'):
+def file_csv_write(object_list, file_folder='', file_name='_none'):
     """Writes a given dictionary to a file the with csv-writer, using
     given suffix as file type.
     """
     if not object_list:
         logging.error("No list given, csv save aborted")
         return
-    csv_filename = ''.join((username, file_suffix))
+    # csv_filename = ''.join((username, file_name))
+    csv_filename = file_name
+    # remove bad characters that can be in urls
+    for k in (URL_DELGARBAGERS + URL_DELIMITERS + ['.', '/', 'www']):
+        csv_filename = csv_filename.replace(k, '')
     logging.debug(f'Writing csv file "{csv_filename}.csv"...')
-    path = folder_create(username)
+    path = Path(__file__).parent
+    path = path / Path(file_folder)
+    if not path.is_file():
+        folder_create(Path(path.resolve().parent))
+    path = folder_create(file_folder)
     try:
         with open(f'{path / Path(csv_filename)}.csv', 'w', newline='',
                   encoding='utf-8') as csvfile:
@@ -172,7 +194,7 @@ def dict_convert(object_list):
         it_com['date'] = strftime("%Y-%m-%d-%M", time_utc)
 
 
-def dict_url_extract(object_list, urls):
+def dict_urls_extract(object_list, urls):
     """Extracts urls from a given praw submission iterator list,
     and returns them in a dictionary.
     """
@@ -275,7 +297,7 @@ def edit_remove(text_orig, text_remove):
     return text_cleaned
 
 
-def praw_comments_download(url_cur, file_name, comments_level=2):
+def praw_comments_download(url_cur, file_folder, file_name, comments_level=2):
     """Fetches and downloads comments equal to the comment-level given,
     and saves them into a txt-file.
     """
@@ -295,7 +317,7 @@ def praw_comments_download(url_cur, file_name, comments_level=2):
                 comments_top.append('    ' + sub_level_comment.body.replace("\n", "\\n"))
         # todo add more than two comment_levels in a more elegant way
         comments_top.append("")
-    file_text_write(comments_top, file_name, newline='\n')
+    file_text_write(comments_top, file_folder, file_name, newline='\n')
 
 
 def url_html_crawler_attr(tag_idx, attr_conditions, attr_searches, urls_final):
@@ -313,13 +335,13 @@ def url_html_crawler_attr(tag_idx, attr_conditions, attr_searches, urls_final):
             logging.warning("empty attributes, skipping to next one")
             continue
         for attr_conditions_ in attr_conditions:
-            logging.debug(f'searching for {attr_conditions_}')
+            # logging.debug(f'searching for {attr_conditions_}')
             if list(html_attrs_) == attr_conditions_:
-                logging.debug(f'property has been found, now scanning for searches')
+                logging.debug(f'property {attr_conditions_} has been found, now scanning for searches')
                 for html_searches_ in html_tags_start_attrs[tag_idx]:
-                    logging.debug(f'scanning in {html_searches_}')
+                    # logging.debug(f'scanning in {html_searches_}')
                     for attr_searches_ in attr_searches:
-                        logging.debug(f'scanning for {attr_searches_}')
+                        # logging.debug(f'scanning for {attr_searches_}')
                         if attr_searches_ == html_searches_[0]:
                             logging.info(f'found search {html_searches_[0]} and returning source {html_searches_[1]}')
                             url_found = html_searches_[1]
@@ -330,7 +352,7 @@ def url_html_crawler_attr(tag_idx, attr_conditions, attr_searches, urls_final):
                             urls_final.append(url_found)
                             # # return early if you found maximum amount of attributes,
                             # # so I don't run through the rest if I already found the number of attributes
-                            # # todo could also make the same for searches
+                            # # todo could also make the same for searches, but could explode complexity
                             # if len(attr_conditions_) >= len(urls_found):
                             #     return urls_found
 
@@ -353,12 +375,13 @@ def url_html_crawler(file_html, url):
     parser = MyHTMLParser()
     parser.feed(str(file_html))
 
-    logging.debug(html_tags_start)
-    logging.debug(html_tags_start_attrs)
+    # logging.debug(html_tags_start)
+    # logging.debug(html_tags_start_attrs)
 
     obj_tag = []
     attr_condition = []
     attr_search = []
+    # add specific searchterms here regarding url parts
     if url.find('imgur'):
         logging.debug('using imgur tags and attributes')
         obj_tag.append('meta')
@@ -392,7 +415,7 @@ def url_filetype(content_type):
     logging.info('Detecting filetype...')
     logging.debug(f'content type {content_type}')
     type_list = content_type.split(sep='/', maxsplit=1)
-    # todo add reddit.gallery, v.reddit, giphy/redgifs, twitter, etc.
+    # todo make v.redd.it and reddit/imgur galleries work
     match type_list[0]:
         case 'text':
             logging.debug('detected "text" type')
@@ -448,9 +471,9 @@ def url_filename_create(url_dict):
     # Author names given can have whack characters like ò that aren't valid in filenames,
     # first encoding them as ascii and then decoding back to utf-8 should remove those.
     name_author = ''
-    if 'author' in url_dict:
-        name_author = str((url_dict['author'].encode("ascii")).decode("utf-8"))
-    logging.debug(f"new_author: {name_author}")
+    if 'author' in url_dict and url_dict['author']:
+        name_author = str((str(url_dict['author']).encode("ascii")).decode("utf-8"))
+        logging.debug(f"new_author: {name_author}")
     name_title = ''
     if 'title' in url_dict:
         name_title = url_dict['title'].rsplit(sep='/', maxsplit=1)[-1]
@@ -464,7 +487,7 @@ def url_filename_create(url_dict):
         logging.debug(f'filename concatenated is "{file_name}"')
     return file_name
 
-def url_download(list_urls, folder='downloads', restriction=(0, None), comments_level=0):
+def url_download(list_urls, folder='none/downloads', restriction=(0, None), comments_level=0):
     """Takes given dictionary of urls,
     and downloads them to given folder.
     """
@@ -479,6 +502,7 @@ def url_download(list_urls, folder='downloads', restriction=(0, None), comments_
     logging.debug(list_urls)
     logging.debug(list_urls[restriction])
 
+    # todo next time I can just do string.upper() to convert them to upper case
     if json_settings["download_saves"]["ask"]:
         inp = input(f'You are about to download {len(list_urls[restriction])} files, are you sure? [y/yes, n/no]: ')
         # if inp != 'c' or 'choose':
@@ -496,10 +520,7 @@ def url_download(list_urls, folder='downloads', restriction=(0, None), comments_
             return
 
     logging.info(f'Downloading {len(list_urls[restriction])} files...')
-    if username:
-        p_dl = folder_create(username + '/' + folder)
-    else:
-        p_dl = folder_create(folder)
+    p_dl = folder_create(folder)
 
     for url_index, url_object in enumerate(list_urls[restriction]):
         url_cur = url_object['url']
@@ -573,9 +594,7 @@ def url_download(list_urls, folder='downloads', restriction=(0, None), comments_
         # download comments too
         if comments_level > 0:
             p_dl_com = folder_create(p_dl / Path('comments'))
-            file_com = file_name + '.txt'
-            p_full = p_dl_com / Path(file_com)
-            praw_comments_download('https://reddit.com' + url_object['permalink'], p_full,
+            praw_comments_download('https://reddit.com' + url_object['permalink'], p_dl_com, file_name,
                                    comments_level=comments_level)
 
 
@@ -750,7 +769,7 @@ def main() -> int:
         # for subreddit in my_subreddits:
         #     my_subreddits_names.append(subreddit.fullname)
         if my_subreddits:
-            file_text_write(my_subreddits, Path(username) / Path(username + '_sub' + '.txt'))
+            file_text_write(my_subreddits, username, username + '_subreddits')
         else:
             logging.info("No user subscribed subreddits found")
 
@@ -764,21 +783,21 @@ def main() -> int:
             multireddits_txt = []
             for multireddit in my_multireddits:
                 multi_line = multireddit.display_name + ':'
-                # logging.debug(f'found multireddit {multi_line}')
+                logging.debug(f'found multireddit {multi_line}')
                 for subreddit in multireddit.subreddits:
                     # logging.debug(f'subreddit display name is {subreddit.display_name}')
                     multi_line = multi_line + ' ' + subreddit.display_name
                 multireddits_txt.append(multi_line)
-            file_text_write(multireddits_txt, Path(username) /
-                            Path(username + '_multireddits' + '.txt'))
+            file_text_write(multireddits_txt, username, username + '_multireddits')
         else:
             logging.info("No user multireddits found")
 
     # fetch all comments of my user
     if json_settings["download_comments"]["fetch"]:
-        print('Fetching users comments...')
-        logging.info('Fetching users comments...')
+        print('Fetching my own users comments...')
+        logging.info('Fetching my own users comments...')
         my_comments = reddit.user.me().comments.new(limit=json_settings["download_comments"]["limit"])
+        # todo make the comment-levels adjustable (upwards and downwards?)
         if my_comments:
             # save them into dictionary of my preferred format
             redditor_comments = [{'date': comment.created_utc, 'subreddit': comment.subreddit.display_name,
@@ -786,33 +805,36 @@ def main() -> int:
                                   'body': comment.body} for comment in my_comments]
             dict_convert(redditor_comments)
             file_csv_write(redditor_comments,
-                           ('_comments_l' + str(json_settings["download_comments"]["comments_level"])))
+                           file_folder=username,
+                           file_name=''.join((username, ('_comments_l' +
+                                                         str(json_settings["download_comments"]["comments_level"])))))
         else:
             logging.info('No user comments found.')
 
-    # fetch all saves of my user
+    # fetch all saves of my own user
     if json_settings["download_saves"]["fetch"]:
-        print('Fetching users saved submissions...')
+        print('Fetching my own saved submissions...')
+        logging.info('fetching my own saved submissions')
         my_saves = reddit.user.me().saved(limit=json_settings["download_saves"]["limit"])
         # redditor_saves = [{'date': save.created_utc, 'subreddit': save.subreddit.display_name, 'id': save.id,
         #                    'permalink': save.permalink, 'url': save.url} for save in my_saves]
         # Hmm, dunno how or even if I can do that in one lne, so I just do it in an extended for-loop instead
 
         # todo Dang, this needs kinda long, I should probably optimize that one
-        redditor_saves = []
+        my_submissions = []
         for save in my_saves:
             if hasattr(save, 'url'):
-                redditor_saves.append({'date': save.created_utc, 'subreddit': save.subreddit.display_name,
+                my_submissions.append({'date': save.created_utc, 'subreddit': save.subreddit.display_name,
                                        'author': str(save.author), 'id': save.id, 'permalink': save.permalink,
                                        'url': save.url, 'body': None})
             elif hasattr(save, 'body'):
-                redditor_saves.append({'date': save.created_utc, 'subreddit': save.subreddit.display_name,
+                my_submissions.append({'date': save.created_utc, 'subreddit': save.subreddit.display_name,
                                        'author': str(save.author), 'id': save.id, 'permalink': save.permalink,
                                        'url': None, 'body': save.body})
             else:
                 logging.error("Save doesn't contain url or body field!")
-        dict_convert(redditor_saves)
-        file_csv_write(redditor_saves, '_saves')
+        dict_convert(my_submissions)
+        file_csv_write(my_submissions, file_folder=username, file_name=''.join((username, '_saves')))
 
         # Extracting urls; use // before them otherwise it will find sth like imgur twice (in //imgur and in //i.imgur.
         if json_settings["download_saves"]["urls"]:
@@ -820,7 +842,7 @@ def main() -> int:
                 if not url_cur["fetch"]:
                     continue
                 logging.info(f'handling urls {url_cur}')
-                saves_url = dict_url_extract(redditor_saves, url_cur["url"])
+                saves_url = dict_urls_extract(my_submissions, url_cur["url"])
                 # create a name for the file that includes the searched url(s)
                 saves_url_names = []
                 if url_cur["url"][0] == '//':
@@ -831,17 +853,144 @@ def main() -> int:
                         saves_url_names.append(url_idx.strip('//'))
                     # saves_url_filename = [str.join(name) for name in saves_url_names]
                 # save them as a csv file
-                file_csv_write(saves_url, ('_saves_' + '-'.join(saves_url_names)))
+                file_csv_write(saves_url, file_folder=username,
+                               file_name=''.join((username, ('_saves_' + '-'.join(saves_url_names)))))
                 # download separate urls to txt file if chosen
                 if url_cur["dl_list"]:
                     file_text_write([k.get("url") for k in saves_url],
-                                    username + '/' + username + '_urls_' + '-'.join(saves_url_names) + '.txt')
+                                    username, username + '_urls_' + '-'.join(saves_url_names))
                 if url_cur["download"]:
                     # download files from a fetched urls
                     # takes optional slice parameter that defaults to slice(0, -1)
-                    url_download(saves_url, folder=url_cur["folder"], restriction=url_cur["slice"],
+                    url_download(saves_url, folder=username + '/' + url_cur["folder"], restriction=url_cur["slice"],
                                  comments_level=url_cur["comments_level"])
                     # url_download_comments(reddit, saves_imgur, 0)
+
+    # fetch all of requested users
+    # todo yap didn't think I'd need this more often, should write a function
+    for user in json_settings["download_redditors"]:
+        if not user:
+            continue
+        user_name = user["redditor"]
+        if not user_name:
+            continue
+        logging.info(f'handling user {user_name}')
+        user_cur = reddit.redditor(user_name)
+        if not user_cur:
+            logging.error(f'user "{user_cur}" is not valid')
+
+        if user["download_submissions"]["fetch"]:
+            print(f'Fetching users {user_name} saved submissions...')
+            red_submissions = user_cur.submissions.new(limit=user["download_submissions"]["limit"])
+
+            redditor_submissions = []
+            for save in red_submissions:
+                if hasattr(save, 'url'):
+                    redditor_submissions.append({'date': save.created_utc, 'subreddit': save.subreddit.display_name,
+                                           'id': save.id, 'permalink': save.permalink,
+                                           'url': save.url, 'body': None})
+                elif hasattr(save, 'body'):
+                    redditor_submissions.append({'date': save.created_utc, 'subreddit': save.subreddit.display_name,
+                                           'id': save.id, 'permalink': save.permalink,
+                                           'url': None, 'body': save.body})
+                else:
+                    logging.error("Save doesn't contain url or body field!")
+            dict_convert(redditor_submissions)
+            file_csv_write(redditor_submissions, file_folder=user_cur.name,
+                           file_name=''.join((user_cur.name, '_submissions')))
+
+            # Extracting urls
+            if user["download_submissions"]["urls"]:
+                for url_cur in user["download_submissions"]["urls"]:
+                    if not url_cur["fetch"]:
+                        continue
+                    logging.info(f'handling urls {url_cur}')
+                    saves_url = dict_urls_extract(redditor_submissions, url_cur["url"])
+                    saves_url_names = []
+                    if url_cur["url"][0] == '//':
+                        saves_url_names = ['all']
+                    else:
+                        for url_idx in url_cur["url"]:
+                            saves_url_names.append(url_idx.strip('//'))
+                    file_csv_write(saves_url, file_folder=user_name,
+                                   file_name=''.join((user_name, ('_urls_' + '-'.join(saves_url_names)))))
+                    if url_cur["dl_list"]:
+                        file_text_write([k.get("url") for k in saves_url],
+                                        user_name, user_name + '_urls_' + '-'.join(saves_url_names))
+                    if url_cur["download"]:
+                        url_download(saves_url, folder=user_name + '/' + url_cur["folder"], restriction=url_cur["slice"],
+                                     comments_level=url_cur["comments_level"])
+
+        if user["download_comments"]["fetch"]:
+            print(f'Fetching users {user_name} comments...')
+            logging.info(f'Fetching users {user_name} comments...')
+            red_comments = user_cur.comments.new(limit=user["download_comments"]["limit"])
+            if red_comments:
+                # save them into dictionary of my preferred format
+                redditor_comments = [{'date': comment.created_utc, 'subreddit': comment.subreddit.display_name,
+                                      'id': comment.id, 'permalink': comment.permalink,
+                                      'body': comment.body} for comment in red_comments]
+                dict_convert(redditor_comments)
+                file_csv_write(redditor_comments, file_folder=user_name,
+                               file_name=''.join((user_name,
+                                                  ('_comments_l' +
+                                                   str(user["download_comments"]["comments_level"])))))
+            else:
+                logging.info('No user comments found.')
+
+    # fetch all of requested subreddits
+    for sub in json_settings["download_subs"]:
+        if not sub:
+            continue
+        sub_name = sub["subreddit"]
+        if not sub_name:
+            continue
+        logging.info(f'handling subreddit {sub_name}')
+        sub_cur = reddit.subreddit(sub_name)
+        if not sub_cur:
+            logging.error(f'user "{sub_cur}" is not valid')
+
+        if sub["download_submissions"]["fetch"]:
+            print(f'Fetching subreddits {sub_name} saved submissions...')
+            sub_submissions = sub_cur.new(limit=sub["download_submissions"]["limit"])
+
+            subreddit_submissions = []
+            for save in sub_submissions:
+                if hasattr(save, 'url'):
+                    subreddit_submissions.append({'date': save.created_utc, 'subreddit': '',
+                                           'author': save.author, 'id': save.id, 'permalink': save.permalink,
+                                           'url': save.url, 'body': None})
+                elif hasattr(save, 'body'):
+                    subreddit_submissions.append({'date': save.created_utc, 'subreddit': '',
+                                           'author': save.author, 'id': save.id, 'permalink': save.permalink,
+                                           'url': None, 'body': save.body})
+                else:
+                    logging.error("Save doesn't contain url or body field!")
+            dict_convert(subreddit_submissions)
+            file_csv_write(subreddit_submissions, file_folder=sub_cur.name,
+                           file_name=''.join((sub_cur.name, '_submissions')))
+
+            # Extracting urls
+            if sub["download_submissions"]["urls"]:
+                for url_cur in sub["download_submissions"]["urls"]:
+                    if not url_cur["fetch"]:
+                        continue
+                    logging.info(f'handling urls {url_cur}')
+                    saves_url = dict_urls_extract(subreddit_submissions, url_cur["url"])
+                    saves_url_names = []
+                    if url_cur["url"][0] == '//':
+                        saves_url_names = ['all']
+                    else:
+                        for url_idx in url_cur["url"]:
+                            saves_url_names.append(url_idx.strip('//'))
+                    file_csv_write(saves_url, file_folder=sub_name,
+                                   file_name=''.join((sub_name, ('_urls_' + '-'.join(saves_url_names)))))
+                    if url_cur["dl_list"]:
+                        file_text_write([k.get("url") for k in saves_url],
+                                        sub_name, sub_name + '_urls_' + '-'.join(saves_url_names))
+                    if url_cur["download"]:
+                        url_download(saves_url, folder=sub_name + '/' + url_cur["folder"], restriction=url_cur["slice"],
+                                     comments_level=url_cur["comments_level"])
 
     return 0
 

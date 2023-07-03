@@ -13,11 +13,22 @@
                                       "dl_list": true, "download": false, "folder": "downloads", "slice": [0, null],
                                       "comments_level": 2},
                                      {"url": ["//imgur", "//i.imgur"], "fetch": true,
-                                      "dl_list": true, "download": false, "folder": "downloads", "slice": [0, null],
+                                      "dl_list": true, "download": true, "folder": "downloads", "slice": [0, null],
                                       "comments_level": 2},
                                      {"url": ["//i.redd.it", "//v.redd.it"], "fetch": true,
-                                      "dl_list": true, "download": false, "folder": "downloads", "slice": [0, null],
+                                      "dl_list": true, "download": true, "folder": "downloads", "slice": [0, null],
                                       "comments_level": 2}]
-                            }
+                            },
+        "download_redditors": [{"redditor": "",
+                                    "download_submissions": {"fetch": false, "limit": null, "ask": true,
+                                                             "urls": [{"url": ["//"], "fetch": true, "dl_list": true,
+                                                                       "download": false, "folder": "downloads",
+                                                                       "slice": [0, null], "comments_level": 2}]},
+                                    "download_comments": {"fetch": true, "limit": null, "comments_level": 0}}],
+        "download_subs": [{"subreddit": "",
+                                    "download_submissions": {"fetch": false, "limit": null, "ask": true,
+                                                             "urls": [{"url": ["//"], "fetch": true, "dl_list": true,
+                                                                       "download": false, "folder": "downloads",
+                                                                       "slice": [0, null], "comments_level": 2}]}}]
                 }
 }
